@@ -1,0 +1,5 @@
+{
+  "name": "BrandPulse AI",
+  "description": "A comprehensive consumer sentiment analysis dashboard for brands. It ingests customer feedback, uses Gemini 2.5 Flash to classify sentiment, detect emotions, and cluster topics, providing actionable executive insights.",
+  "requestFramePermissions": []
+}
