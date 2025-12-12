@@ -31,4 +31,10 @@ export interface ExecutiveSummary {
   generatedAt: string;
 }
 
-export type ViewState = 'dashboard' | 'analyze' | 'reports';
+export interface CompanyProfile {
+  name: string;
+  industry: string;
+  description: string;
+}
+
+export type ViewState = 'dashboard' | 'analyze' | 'reports' | 'settings';

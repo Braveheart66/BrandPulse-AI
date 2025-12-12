@@ -5,18 +5,25 @@ import {
   FileText, 
   Menu, 
   X,
-  Zap
+  Zap,
+  Settings as SettingsIcon
 } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import Analyzer from './components/Analyzer';
 import Reports from './components/Reports';
+import Settings from './components/Settings';
 import { MOCK_FEEDBACK } from './constants';
-import { FeedbackItem, ViewState } from './types';
+import { FeedbackItem, ViewState, CompanyProfile } from './types';
 
 function App() {
   const [activeView, setActiveView] = useState<ViewState>('dashboard');
   const [feedbackData, setFeedbackData] = useState<FeedbackItem[]>(MOCK_FEEDBACK);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [companyProfile, setCompanyProfile] = useState<CompanyProfile>({
+    name: '',
+    industry: '',
+    description: ''
+  });
 
   const handleAddFeedback = (item: FeedbackItem) => {
     setFeedbackData(prev => [item, ...prev]);
@@ -43,11 +50,18 @@ function App() {
     <div className="min-h-screen bg-slate-50 flex font-sans">
       {/* Sidebar - Desktop */}
       <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 fixed h-full z-10">
-        <div className="p-6 flex items-center gap-3">
-          <div className="bg-indigo-600 p-2 rounded-lg">
-            <Zap className="text-white" size={24} />
+        <div className="p-6 flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <div className="bg-indigo-600 p-2 rounded-lg">
+              <Zap className="text-white" size={24} />
+            </div>
+            <h1 className="text-xl font-bold text-slate-800 tracking-tight">BrandPulse AI</h1>
           </div>
-          <h1 className="text-xl font-bold text-slate-800 tracking-tight">BrandPulse AI</h1>
+          {companyProfile.name && (
+            <p className="text-xs font-semibold text-slate-400 pl-11 truncate">
+              for {companyProfile.name}
+            </p>
+          )}
         </div>
         
         <nav className="flex-1 px-4 space-y-1 mt-4">
@@ -56,7 +70,10 @@ function App() {
           <NavItem view="reports" label="Executive Reports" icon={FileText} />
         </nav>
 
-        <div className="p-4 border-t border-slate-100">
+        <div className="px-4 pb-4">
+          <div className="border-t border-slate-100 pt-4 mb-2">
+             <NavItem view="settings" label="Settings" icon={SettingsIcon} />
+          </div>
           <div className="bg-slate-50 rounded-lg p-4">
             <p className="text-xs font-semibold text-slate-500 uppercase">Powered By</p>
             <div className="flex items-center gap-2 mt-2">
@@ -75,7 +92,10 @@ function App() {
              <div className="bg-indigo-600 p-1.5 rounded-md">
                 <Zap className="text-white" size={20} />
              </div>
-             <span className="font-bold text-slate-800">BrandPulse AI</span>
+             <div>
+               <span className="font-bold text-slate-800 block leading-tight">BrandPulse AI</span>
+               {companyProfile.name && <span className="text-xs text-slate-500 block leading-tight">for {companyProfile.name}</span>}
+             </div>
           </div>
           <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-slate-600">
             {mobileMenuOpen ? <X /> : <Menu />}
@@ -89,6 +109,7 @@ function App() {
                <NavItem view="dashboard" label="Dashboard" icon={LayoutDashboard} />
                <NavItem view="analyze" label="Analyze Feedback" icon={Search} />
                <NavItem view="reports" label="Executive Reports" icon={FileText} />
+               <NavItem view="settings" label="Settings" icon={SettingsIcon} />
              </nav>
           </div>
         )}
@@ -107,13 +128,28 @@ function App() {
 
           {activeView === 'analyze' && (
             <div className="space-y-6">
-              <Analyzer onAddFeedback={handleAddFeedback} />
+              <Analyzer 
+                onAddFeedback={handleAddFeedback} 
+                companyProfile={companyProfile}
+              />
             </div>
           )}
 
           {activeView === 'reports' && (
              <div className="space-y-6">
-               <Reports data={feedbackData} />
+               <Reports 
+                data={feedbackData} 
+                companyProfile={companyProfile}
+               />
+             </div>
+          )}
+
+          {activeView === 'settings' && (
+             <div className="space-y-6">
+               <Settings 
+                 profile={companyProfile} 
+                 onSave={setCompanyProfile} 
+               />
              </div>
           )}
         </div>

@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { AnalysisResponse, FeedbackItem, Sentiment, ExecutiveSummary } from "../types";
+import { AnalysisResponse, FeedbackItem, Sentiment, ExecutiveSummary, CompanyProfile } from "../types";
 
 // Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -54,11 +54,17 @@ const summarySchema: Schema = {
   required: ["overview", "topIssues", "recommendations"]
 };
 
-export const analyzeFeedbackText = async (text: string): Promise<AnalysisResponse> => {
+const getContextPrompt = (profile?: CompanyProfile) => {
+  if (!profile || !profile.name) return "";
+  return `\nContext: You are analyzing feedback for "${profile.name}"${profile.industry ? `, a company in the ${profile.industry} industry` : ""}.${profile.description ? `\nCompany Description: ${profile.description}` : ""}`;
+};
+
+export const analyzeFeedbackText = async (text: string, profile?: CompanyProfile): Promise<AnalysisResponse> => {
   try {
+    const context = getContextPrompt(profile);
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Analyze the following customer feedback for a brand. Be objective and precise.\n\nFeedback: "${text}"`,
+      contents: `Analyze the following customer feedback for a brand. Be objective and precise.${context}\n\nFeedback: "${text}"`,
       config: {
         responseMimeType: "application/json",
         responseSchema: analysisSchema,
@@ -96,15 +102,16 @@ export const analyzeFeedbackText = async (text: string): Promise<AnalysisRespons
   }
 };
 
-export const generateExecutiveSummary = async (items: FeedbackItem[]): Promise<ExecutiveSummary> => {
+export const generateExecutiveSummary = async (items: FeedbackItem[], profile?: CompanyProfile): Promise<ExecutiveSummary> => {
   try {
+    const context = getContextPrompt(profile);
     // Summarize the input data to avoid token limits if the list is huge, 
     // but for this demo, we pass the raw text of the items.
     const feedbackList = items.map(i => `- [${i.sentiment}] (${i.topics.join(', ')}): ${i.text}`).join('\n');
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash", // Flash is good for summarization of large context
-      contents: `You are a Chief Customer Officer. specific executive summary based on the following feedback logs. Focus on patterns, root causes, and business impact.\n\nFeedback Logs:\n${feedbackList}`,
+      contents: `You are a Chief Customer Officer. Provide a specific executive summary based on the following feedback logs. Focus on patterns, root causes, and business impact.${context}\n\nFeedback Logs:\n${feedbackList}`,
       config: {
         responseMimeType: "application/json",
         responseSchema: summarySchema,

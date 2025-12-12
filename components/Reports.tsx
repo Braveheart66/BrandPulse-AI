@@ -1,19 +1,20 @@
 import React, { useState } from 'react';
 import { FileText, Loader2, Download, RefreshCw } from 'lucide-react';
-import { FeedbackItem, ExecutiveSummary } from '../types';
+import { FeedbackItem, ExecutiveSummary, CompanyProfile } from '../types';
 import { generateExecutiveSummary } from '../services/geminiService';
 
 interface ReportsProps {
   data: FeedbackItem[];
+  companyProfile: CompanyProfile;
 }
 
-const Reports: React.FC<ReportsProps> = ({ data }) => {
+const Reports: React.FC<ReportsProps> = ({ data, companyProfile }) => {
   const [summary, setSummary] = useState<ExecutiveSummary | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleGenerate = async () => {
     setLoading(true);
-    const result = await generateExecutiveSummary(data);
+    const result = await generateExecutiveSummary(data, companyProfile);
     setSummary(result);
     setLoading(false);
   };
@@ -42,7 +43,7 @@ const Reports: React.FC<ReportsProps> = ({ data }) => {
           </div>
           <h3 className="text-lg font-medium text-slate-700">No report generated yet</h3>
           <p className="text-slate-400 mt-2 max-w-md mx-auto">
-            Click the button above to let Gemini analyze all collected feedback and produce a high-level executive summary.
+            Click the button above to let Gemini analyze all collected feedback and produce a high-level executive summary{companyProfile.name ? ` for ${companyProfile.name}` : ''}.
           </p>
         </div>
       )}
@@ -62,7 +63,8 @@ const Reports: React.FC<ReportsProps> = ({ data }) => {
                <div>
                  <p className="text-indigo-300 text-sm uppercase tracking-wider font-semibold">Gemini Intelligence Report</p>
                  <h1 className="text-3xl font-bold mt-2">Brand Sentiment Overview</h1>
-                 <p className="text-indigo-200 mt-2">Generated on {new Date(summary.generatedAt).toLocaleDateString()}</p>
+                 {companyProfile.name && <p className="text-indigo-100 font-medium mt-1">Prepared for {companyProfile.name}</p>}
+                 <p className="text-indigo-200 mt-2 text-sm">Generated on {new Date(summary.generatedAt).toLocaleDateString()}</p>
                </div>
                <button className="bg-white/10 hover:bg-white/20 p-2 rounded-lg transition-colors text-white">
                  <Download size={20} />

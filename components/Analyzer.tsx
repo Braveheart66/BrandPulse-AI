@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Loader2, Sparkles, Plus } from 'lucide-react';
 import { analyzeFeedbackText } from '../services/geminiService';
-import { FeedbackItem, Sentiment } from '../types';
+import { FeedbackItem, Sentiment, CompanyProfile } from '../types';
 
 interface AnalyzerProps {
   onAddFeedback: (item: FeedbackItem) => void;
+  companyProfile: CompanyProfile;
 }
 
-const Analyzer: React.FC<AnalyzerProps> = ({ onAddFeedback }) => {
+const Analyzer: React.FC<AnalyzerProps> = ({ onAddFeedback, companyProfile }) => {
   const [inputText, setInputText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [lastResult, setLastResult] = useState<FeedbackItem | null>(null);
@@ -18,7 +19,7 @@ const Analyzer: React.FC<AnalyzerProps> = ({ onAddFeedback }) => {
     setIsAnalyzing(true);
     setLastResult(null);
 
-    const result = await analyzeFeedbackText(inputText);
+    const result = await analyzeFeedbackText(inputText, companyProfile);
 
     const newItem: FeedbackItem = {
       id: Date.now().toString(),
@@ -43,6 +44,11 @@ const Analyzer: React.FC<AnalyzerProps> = ({ onAddFeedback }) => {
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold text-slate-800">Analyze New Feedback</h2>
         <p className="text-slate-500">Paste customer emails, reviews, or chat logs below. Gemini will extract sentiment, topics, and actionable insights in seconds.</p>
+        {companyProfile.name && (
+          <p className="text-xs text-indigo-600 font-medium bg-indigo-50 inline-block px-2 py-1 rounded">
+            Analysis tailored for: {companyProfile.name}
+          </p>
+        )}
       </div>
 
       <div className="bg-white p-6 rounded-xl shadow-lg border border-indigo-100">
