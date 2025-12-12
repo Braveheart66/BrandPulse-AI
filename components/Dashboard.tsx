@@ -1,11 +1,14 @@
-import React from 'react';
-import { FeedbackItem, Sentiment } from '../types';
+import React, { useState, useEffect } from 'react';
+import { FeedbackItem, Sentiment, CompanyProfile } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import StatCard from './StatCard';
-import { MessageSquare, TrendingUp, AlertTriangle, Smile, ExternalLink } from 'lucide-react';
+import { MessageSquare, TrendingUp, AlertTriangle, Smile, ExternalLink, Radio, Wifi } from 'lucide-react';
+import { analyzeFeedbackText, generateSyntheticFeedback } from '../services/geminiService';
 
 interface DashboardProps {
   data: FeedbackItem[];
+  onAddFeedback: (item: FeedbackItem) => void;
+  companyProfile: CompanyProfile;
 }
 
 const COLORS = {
@@ -14,7 +17,52 @@ const COLORS = {
   [Sentiment.Negative]: '#ef4444', // red-500
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ data }) => {
+const Dashboard: React.FC<DashboardProps> = ({ data, onAddFeedback, companyProfile }) => {
+  const [isLive, setIsLive] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
+
+  // Live Data Simulation Effect
+  useEffect(() => {
+    if (!isLive) return;
+
+    const fetchLiveFeedback = async () => {
+      setIsFetching(true);
+      try {
+        // 1. Generate synthetic feedback
+        const raw = await generateSyntheticFeedback(companyProfile);
+        
+        // 2. Analyze it immediately
+        const analysis = await analyzeFeedbackText(raw.text, companyProfile);
+        
+        // 3. Add to dashboard
+        const newItem: FeedbackItem = {
+          id: Date.now().toString(),
+          source: raw.source as any,
+          text: raw.text,
+          date: new Date().toISOString().split('T')[0],
+          sentiment: analysis.sentiment,
+          emotion: analysis.emotion,
+          intensity: analysis.intensity,
+          topics: analysis.topics,
+          actionableInsight: analysis.actionableInsight
+        };
+        
+        onAddFeedback(newItem);
+      } catch (e) {
+        console.error("Live stream error", e);
+      } finally {
+        setIsFetching(false);
+      }
+    };
+
+    // Initial fetch
+    fetchLiveFeedback();
+
+    // Loop
+    const interval = setInterval(fetchLiveFeedback, 6000); // New item every 6 seconds
+    return () => clearInterval(interval);
+  }, [isLive, companyProfile, onAddFeedback]);
+
   // Compute Stats
   const total = data.length;
   const positive = data.filter(d => d.sentiment === Sentiment.Positive).length;
@@ -43,6 +91,34 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
 
   return (
     <div className="space-y-6 animate-fadeIn">
+      {/* Header with Live Control */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">Overview</h2>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-sm text-slate-500">Last updated: Just now</span>
+            {isLive && (
+              <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold animate-pulse">
+                <span className="w-2 h-2 rounded-full bg-red-600"></span>
+                LIVE
+              </span>
+            )}
+          </div>
+        </div>
+        
+        <button
+          onClick={() => setIsLive(!isLive)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all shadow-sm ${
+            isLive 
+              ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100' 
+              : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+          }`}
+        >
+          <Wifi size={18} className={isLive ? 'animate-pulse' : ''} />
+          {isLive ? 'Stop Live Feed' : 'Connect Live Data'}
+        </button>
+      </div>
+
       {/* Top Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
@@ -131,13 +207,16 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
       {/* Recent Feedback Feed */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
         <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-slate-800">Recent Activity</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-slate-800">Recent Activity</h3>
+            {isFetching && <span className="text-xs text-indigo-500 animate-pulse font-medium">Processing incoming data...</span>}
+          </div>
         </div>
         <div className="divide-y divide-slate-100 max-h-[400px] overflow-y-auto">
-          {data.slice().reverse().map((item) => (
+          {data.slice().reverse().map((item, idx) => (
             <div 
               key={item.id} 
-              className="p-4 hover:bg-slate-50 transition-colors cursor-pointer group"
+              className={`p-4 hover:bg-slate-50 transition-all cursor-pointer group ${isLive && idx === 0 ? 'animate-slideUp bg-blue-50/50' : ''}`}
               onClick={() => alert(`Opening source: ${item.source} - ${item.id}`)}
             >
               <div className="flex justify-between items-start">
@@ -150,6 +229,9 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
                     {item.sentiment}
                   </span>
                   <span className="text-xs text-slate-400">• {item.source} • {item.date}</span>
+                  {isLive && idx === 0 && (
+                    <span className="text-[10px] bg-red-100 text-red-600 px-1.5 rounded font-bold">NEW</span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                    <span className="text-xs font-medium text-slate-500">Intensity: {item.intensity}/10</span>

@@ -134,3 +134,35 @@ export const generateExecutiveSummary = async (items: FeedbackItem[], profile?: 
     };
   }
 };
+
+export const generateSyntheticFeedback = async (profile?: CompanyProfile): Promise<{ text: string; source: string }> => {
+  try {
+    const context = getContextPrompt(profile);
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: `Generate a single piece of realistic customer feedback (review, tweet, or support message). 
+      ${context}
+      Vary the sentiment (Positive, Neutral, Negative) randomly, but bias slightly towards realistic issues or praise relevant to the industry. 
+      Keep it under 30 words. 
+      Return JSON with 'text' and 'source' (choose from: Twitter, Review, Email, Support).`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+                text: { type: Type.STRING },
+                source: { type: Type.STRING }
+            }
+        },
+        temperature: 1.0, // High creativity for varied feedback
+      },
+    });
+    
+    const jsonText = response.text;
+    if (!jsonText) throw new Error("No data returned");
+    return JSON.parse(jsonText) as { text: string; source: string };
+  } catch (e) {
+    console.error(e);
+    return { text: "I'm having trouble with the service today.", source: "Support" };
+  }
+};

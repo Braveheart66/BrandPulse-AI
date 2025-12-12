@@ -26,7 +26,7 @@ function App() {
   });
 
   const handleAddFeedback = (item: FeedbackItem) => {
-    setFeedbackData(prev => [item, ...prev]);
+    setFeedbackData(prev => [...prev, item]); // Append to end, Dashboard reverses it for display
   };
 
   const NavItem = ({ view, label, icon: Icon }: { view: ViewState; label: string; icon: any }) => (
@@ -118,11 +118,11 @@ function App() {
         <div className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
           {activeView === 'dashboard' && (
             <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-slate-800">Overview</h2>
-                <span className="text-sm text-slate-500">Last updated: Just now</span>
-              </div>
-              <Dashboard data={feedbackData} />
+              <Dashboard 
+                data={feedbackData} 
+                onAddFeedback={handleAddFeedback}
+                companyProfile={companyProfile}
+              />
             </div>
           )}
 
